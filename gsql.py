@@ -1,4 +1,6 @@
+#coding=utf-8
 from requests.models import cookiejar_from_dict
+from requests.sessions import session
 from rich.console import Console
 from rich.table import Column
 from rich.progress import Progress, BarColumn, TextColumn
@@ -12,7 +14,7 @@ import asyncio
 import aiohttp
 import sys
 import re 
-#coding=utf-8
+
 import sys
 import math
 
@@ -143,17 +145,19 @@ class ProgressBar(object):
 
 
  # command
-
+user = "tigergraph"
+password = "tigergraph"
 host = "http://127.0.0.1:14240"
 port = "14240"
 
 
 # Console 
 console = Console()
+jar = aiohttp.CookieJar(unsafe=True)
 
 
 # Variables 
-cookies = aiohttp.CookieJar()
+GSQL_Cookie = aiohttp.CookieJar()
 nbActual = 0
 nbTotal = 0
 diff = 0
@@ -203,116 +207,127 @@ VERSION_COMMIT = {
 p = None
 
 GSQL_PATH = "/gsqlserver/gsql/"
-
+GSQL_Cookie = {}
 url = '{}{}{}'
 
-async def main(cmd="",endpoint="",cookie={},graph="",user="tigergraph",password="tigergraph"):
-    global cookies,nbActual,nbTotal,diff
-    global p
-    async with aiohttp.ClientSession(cookie_jar=cookies) as s:
-        cookies = s.cookie_jar.filter_cookies('http://127.0.0.1:14240')
-        cookies["clientCommit"] = "3887cbd1d67b58ba6f88c50a069b679e20743984"
-        usrPass = "{}:{}".format(user,password)
-        b64Val = base64.b64encode(usrPass.encode()).decode()
-        headers = {"Authorization": "Basic {}".format(b64Val)}
-
-        data=""
-        data ="""
-        USE GRAPH MyGraph
-        CREATE QUERY sdqsdsdksdfsdddddd4sd5sds54dssd() FOR GRAPH MyGraph {
-            PRINT "CAA";
-        }
-        INSTALL QUERY ALL
+async def main(user="tigergraph",password="tigergraph",cmd="",endpoint="",cookie={},graph=""):
+    global GSQL_Cookie,nbActual,nbTotal,diff
+    global p,host,VERSION
+    async with aiohttp.ClientSession(cookie_jar=jar) as s:
+        data = cmd
         
-        """
-        while (data != "exit"):
-            async with s.post(url.format(host,GSQL_PATH,FILE_ENDPOINT), headers=headers,data=data) as r:
-                async for data, _ in r.content.iter_chunks():
-                    if GSQL_SEPERATOR not in data.decode():
-                        # is it a progressbar ? 
-                        result = re.search(REGEX, str(data.decode()))
-                        if result != None:
-                            # print(result)
-                            # print(int(result.group(1)))
-                            # print(result.group(1))
-                            if p == None:
-                                p = ProgressBar(width=80)
-                                p.start()
-
-                            console.show_cursor(False)
-                            # progress.print(int(result.group(1)))
-                            # console.print(p.tick(int(result.group(1))))
-                            # print(int(result.group(1)))
-                            for i in range(int(result.group(1))):
-                                p.tick(int(result.group(1))/100.0)
-                                # time.sleep(0.2)
-                            # console.file.write("\r")
-                            console.show_cursor(True)
-                            # console.print()
-                            # console.out(data.decode())
-                        else:
-                            console.print(data.decode().strip())
-
-                    elif GSQL_COOKIES in data.decode():
-
-                        try:
-                            cookies = json.loads((data.decode()).split("__,")[1])
-                        except:
-                            pass
-
-            data = console.input("[blue]GSQL > ")
-
-            
-            
-
-def loops():
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-
-
-
-
-def login(user="tigergraph",password="tigergraph"):
-    global VERSION
-    cookies = {}
-    for ver in VERSION_COMMIT:
-        cookies["clientCommit"] = VERSION_COMMIT[ver]
-        cookies["fromGraphStudio"] = True
-        cookies["fromGsqlClient"] = True
         usrPass = "{}:{}".format(user,password)
         b64Val = base64.b64encode(usrPass.encode()).decode()
         headers = {
             "Content-Language": "en-US",
-            # "Authorization": "Basic {}".format(b64Val),
+            "Authorization": "Basic {}".format(b64Val),
             "Pragma": "no-cache",
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "Java/1.8.0",
-            "Cookie": json.dumps(cookies)
+            "Cookie": json.dumps(GSQL_Cookie)
         }
-        # print(headers)
-        # print(url.format(host,GSQL_PATH,LOGIN_ENPOINT))
-        res = requests.post(url.format(host,GSQL_PATH,LOGIN_ENPOINT),headers=headers,data=b64Val)
-        # print(res.text)
-        try:
-            # print("####### BEGIN #######")
-            # print(res.text)
-            # print(ver)
-            # print("+++++++ END ++++++++++")
-            if res.json()["isClientCompatible"] == True:
-                VERSION = ver
-                print(res.json()["error"])
-                print(res.json()["message"])
-                print(res.json()["welcomeMessage"])
-                break
-        except:
-            pass
+        async with s.post(url.format(host,GSQL_PATH,FILE_ENDPOINT), headers=headers,data=data) as r:
+            async for data, _ in r.content.iter_chunks():
+                if GSQL_SEPERATOR not in data.decode():
+                    # is it a progressbar ? 
+                    result = re.search(REGEX, str(data.decode()))
+                    if result != None:
+                        if p == None:
+                            p = ProgressBar(width=80)
+                            p.start()
+                        console.show_cursor(False)
+                        for i in range(int(result.group(1))):
+                            p.tick(int(result.group(1))/100.0)
+                        console.show_cursor(True)
+                    else:
+                        console.print(data.decode().strip())
 
-user = "tigergraph"
-password = "tigergraph"
-login(user,password)
-print(VERSION)
+                elif "__GSQL__COOKIES__" in data.decode():
 
+                    try:
+                        GSQL_Cookie = json.loads((data.decode()).split("__,")[1])
+                        GSQL_Cookie["fromGsqlClient"] = True
+                        GSQL_Cookie["fromGraphStudio"] = False
+                    except:
+                        pass
+
+            return True
+
+            
+            
+
+def loops():
+    global GSQL_Cookie
+    data = ""
+    while data != "Quit":
+        data = console.input("[blue]GSQL > ")
+        if data !="Quit":
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(main(user="tigergraph",password="tigergraph",cmd=data,endpoint="",cookie=GSQL_Cookie,graph=""))
+
+
+
+
+def login(host="http://127.0.0.1:14240",user="tigergraph",password="tigergraph"):
+    global VERSION,GSQL_Cookie
+    try:
+        for ver in VERSION_COMMIT:
+            GSQL_Cookie["clientCommit"] = VERSION_COMMIT[ver]
+            GSQL_Cookie["fromGraphStudio"] = True
+            GSQL_Cookie["fromGsqlClient"] = True
+            usrPass = "{}:{}".format(user,password)
+            b64Val = base64.b64encode(usrPass.encode()).decode()
+            headers = {
+                "Content-Language": "en-US",
+                "Pragma": "no-cache",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "Java/1.8.0",
+                "Cookie": json.dumps(GSQL_Cookie)
+            }
+            try:
+                res = requests.post(url.format(host,GSQL_PATH,LOGIN_ENPOINT),headers=headers,data=b64Val)
+            except Exception as e:
+                print(e)
+            try:
+                
+                if res.json()["isClientCompatible"] == True:
+                    try:
+                        GSQL_Cookie = json.loads(res.headers["Set-cookie"])
+                    except:
+                        pass
+                    if (res.json()["error"] == True):
+                        print(res.json()["message"])
+                        VERSION = ""
+                        break
+                    else:
+                        VERSION = ver
+                        print(res.json()["welcomeMessage"])
+                        break
+            except:
+                pass
+    except Exception as e:
+        print(e)
+
+
+
+
+
+
+
+
+
+
+login(host,user,password)
 if VERSION :
     loops()
+
+
+
+
+# Exception Handler 
+# requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+# 
