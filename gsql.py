@@ -188,22 +188,6 @@ VERSION_COMMIT = {
     "3.1.2": "3887cbd1d67b58ba6f88c50a069b679e20743984",
 }
 
-
-#   private static final String DEFAULT_USER = "tigergraph";
-#   private static final String DEFAULT_PASSWORD = "tigergraph";
-
-#   private static final String ENDPOINT_COMMAND = "command";
-#   private static final String ENDPOINT_VERSION = "version";
-#   private static final String ENDPOINT_HELP = "help";
-#   private static final String ENDPOINT_LOGIN = "login";
-#   private static final String ENDPOINT_RESET = "reset";
-#   private static final String ENDPOINT_LOCK = "lock";
-#   private static final String ENDPOINT_FILE = "file";
-#   private static final String ENDPOINT_DIALOG = "dialog";
-#   private static final String ENDPOINT_GET_INFO = "getinfo";
-#   private static final String ENDPOINT_ABORT_CLIENT_SESSION = "abortclientsession";
-#   private static final String ENDPOINT_UDF = "userdefinedfunction";
-
 p = None
 
 GSQL_PATH = "/gsqlserver/gsql/"
@@ -328,6 +312,3 @@ if VERSION :
 
 
 
-# Exception Handler 
-# requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
-# 
